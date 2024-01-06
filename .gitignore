@@ -1,0 +1,11 @@
+# directory for big files
+tmp/*
+
+# executable
+webcam_screenshot
+
+# screenshots
+screenshots/*
+
+# readme files
+!README.md
