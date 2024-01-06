@@ -14,6 +14,7 @@ using namespace std;
 
 char const *deviceName = "/dev/video0";
 char const *screenshotDir = "./screenshots/";
+int const delay = 2000;
 
 // Get current date/time, format is YYYY-MM-DD.HH:mm:ss
 const std::string currentDateTime() {
@@ -122,13 +123,14 @@ void queueDequeue(int fileDescriptor, v4l2_buffer* bufferInfo) {
         perror("Could not dequeue the buffer, VIDIOC_DQBUF");
         exit(1);
     }
-    // Frames get written after dequeuing the buffer
-    cout << "Buffer has: " << (double)bufferInfo->bytesused / 1024
-            << " KBytes of data" << endl;
+    // // Frames get written after dequeuing the buffer
+    // cout << "Buffer has: " << (double)bufferInfo->bytesused / 1024
+    //         << " KBytes of data" << endl;
 }
 
 // save data to filePath
 void saveFile(string filePath, char* buffer, v4l2_buffer bufferInfo) {
+    printf("Saving file %s (%f KBytes)\n", filePath.c_str(), (double)bufferInfo.bytesused / 1024);
     // Write the data out to file
     ofstream outFile;
     outFile.open(filePath, ios::binary| ios::app);
@@ -153,10 +155,14 @@ int main() {
     requestBuffersFromDevice(fileDescriptor);
     v4l2_buffer bufferInfo; char* buffer; std::tie(bufferInfo, buffer) = queryBuffer(fileDescriptor);
     activateStreaming(fileDescriptor, bufferInfo);
-    queueDequeue(fileDescriptor, &bufferInfo);
-    saveFile(screenshotDir + currentDateTime() + ".jpeg", buffer, bufferInfo);
-    endStreaming(fileDescriptor, bufferInfo);
 
+    while (true) {
+        queueDequeue(fileDescriptor, &bufferInfo);
+        saveFile(screenshotDir + currentDateTime() + ".jpeg", buffer, bufferInfo);
+        this_thread::sleep_for(chrono::milliseconds(delay));
+    }
+
+    endStreaming(fileDescriptor, bufferInfo);
     close(fileDescriptor);
     return 0;
 }
